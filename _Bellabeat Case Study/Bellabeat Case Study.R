@@ -1,3 +1,13 @@
+----
+## Bellabeat Case Study
+## Bellabeat is a successful small high-tech company that manufactures health-focused smart products for women. They have the potential to become a larger player in the global smart device market.
+
+## Business task: Analyze smart device usage data to gain insight into user habits and inform Bellabeat marketing strategy.
+
+## Project:
+##  • Processed data by formatting, aggregation, and data exploration in R.
+##  • Identified major customer group and developed action plans and recommendations.
+----
 
 ## Installing and loading common packages and libraries
 install.packages("tidyverse")
