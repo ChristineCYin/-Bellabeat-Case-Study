@@ -1,0 +1,258 @@
+---
+title: "Bellabeat Case Study"
+author: "Christine"
+date: "7/27/2021"
+output: github_document
+---
+
+This analysis is the final project of the Google Data Analytics Certificate - Bellabeat Case Study
+
+## Introduction and background
+
+Bellabeat is a successful small high-tech company that manufactures health-focused smart products for women. They have the potential to become a larger player in the global smart device market. Urška Sršen, cofounder and Chief Creative Officer of Bellabeat, believes that analyzing smart device fitness data could help unlock new growth opportunities for the company.
+
+USršen used her background as an artist to develop beautifully designed technology that informs and inspires women around the world. Collecting data on activity, sleep, stress, and reproductive health has allowed Bellabeat to empower women with knowledge about their own health and habits. Since it was founded in 2013, Bellabeat has grown rapidly and quickly positioned itself as a tech-driven wellness company for women.
+
+There is [their website](https://bellabeat.com/) for more information.
+
+## Business task
+
+Analyze smart device usage data to gain insight into user habits and inform Bellabeat marketing strategy. 
+
+### key stakeholders
+
+#### Primary Stakeholders:
+* Urška Sršen: Bellabeat’s cofounder and Chief Creative Officer
+* Sando Mur: Mathematician and Bellabeat’s cofounder; key member of the Bellabeat executive team
+
+#### Secondary Stakeholders:
+* Bellabeat marketing analytics team: A team of data analysts responsible for collecting, analyzing, and reporting data that helps guide Bellabeat’s marketing strategy.
+
+
+## Data sources used
+
+* The dataset used for this analysis is: [FitBit Fitness Tracker Data](https://www.kaggle.com/arashnic/fitbit)
+* CC0: Public Domain, dataset made available through [Mobius](https://www.kaggle.com/arashnic)
+
+* Data Content: This Kaggle data set contains personal fitness tracker from thirty fitbit users. Thirty eligible Fitbit users consented to the submission of personal tracker data, including minute-level output for physical activity, heart rate, and sleep monitoring. It includes information about daily activity, steps, and heart rate that can be used to explore users’ habits.
+
+## Process data for analysis
+#### Installing and loading common packages and libraries
+
+```{r}
+install.packages("tidyverse")
+install.packages("dplyr")
+install.packages("tidyr")
+install.packages("ggplot2")
+
+
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+
+```
+
+#### Loading CSV files
+
+Here I select and create 3 data frames, load the files to view and prepare for further analysis
+
+```{r}
+Activity_Day <- read_csv("Fitabase Data 4.12.16-5.12.16/dailyActivity_merged.csv")
+Intensities_hourly <- read_csv("Fitabase Data 4.12.16-5.12.16/hourlyIntensities_merged.csv")
+Sleep_Day <- read_csv("Fitabase Data 4.12.16-5.12.16/sleepDay_merged.csv")
+
+```
+
+#### Exploring a few key tables
+
+Let's take a look at the data:
+
+```{r}
+head(Activity_Day)
+head(Intensities_hourly)
+head(Sleep_Day)
+```
+
+Identify all the columns in the data:
+ 
+```{r}
+colnames(Activity_Day)
+colnames(Intensities_hourly)
+colnames(Sleep_Day)
+```
+
+### Understanding some summary statistics
+
+View the data, check the content and get some quick summaries and grasp the big picture
+
+```{r distinct users}
+## How many unique participants are there in each data frame? 
+n_distinct(Activity_Day$Id)
+n_distinct(Intensities_hourly$Id)
+n_distinct(Sleep_Day$Id)
+```
+* There are 33 IDs in activity/intensity tracking data, but only 24 IDs in sleep data (not everyone tracks their sleep patterns)
+
+```{r}
+## Some quick summary statistics for each data frame:
+Activity_Day %>%
+  select(TotalSteps, TotalDistance, SedentaryMinutes,
+         VeryActiveMinutes, FairlyActiveMinutes, LightlyActiveMinutes) %>%
+  summary()
+
+Sleep_Day %>%
+  select(TotalMinutesAsleep, TotalTimeInBed) %>%
+  summary()
+```
+
+Here we can see:
+
+* The average number of steps per day is 7,638; and the distance is about 5.5 miles.
+* The average minutes of sedentary per day is 991.2 minutes, approximately 16.5 hours.
+* The users of this dataset do more light activities (average 192.8 minutes, approximately 3.2 hours per day)
+
+* The average minutes of sleep per day is 419.5 minutes, approximately 7 hours.
+* The average minutes of time in bed per day is 458.6 minutes, approximately 7 hours 38.6 minutes.
+
+
+## Analyze data
+
+#### Aggregate the data and clean the format:
+
+```{r}
+
+## Let's clean up the format for later use
+## Cleaning the format
+Intensities_hourly$ActivityHour=as.POSIXct(Intensities_hourly$ActivityHour, format="%m/%d/%Y %I:%M:%S %p", tz=Sys.timezone())
+Intensities_hourly$time <- format(Intensities_hourly$ActivityHour, format = "%H")
+Intensities_hourly$date <- format(Intensities_hourly$ActivityHour, format = "%m/%d/%y")
+Intensities_hourly$Day <-  weekdays(Intensities_hourly$ActivityHour)
+
+## Create a new daily intensity data frame:
+Intensities_Day <- Intensities_hourly %>%
+  group_by(Id,date) %>%
+  drop_na() %>%
+  summarise(sum_TotalIntensity = sum(TotalIntensity)) 
+
+## Cleaning the format
+Intensities_Day$datev2=as.POSIXct(Intensities_Day$date, format="%m/%d/%Y", tz=Sys.timezone())
+Intensities_Day$Day <-  weekdays(Intensities_Day$datev2)
+
+### Grouping to by Day of the weeks
+Intensities_Day_group <- Intensities_Day %>%
+  group_by(Day) %>%
+  drop_na() %>%
+  summarise(mean_sum_TotalIntensity = mean(sum_TotalIntensity))
+
+## Cleaning the format
+Intensities_Day_group$Day <- factor(Intensities_Day_group$Day, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday","Sunday"))
+
+### Group the intensity hourly data frame by day and hour to create a new data frame:
+Intensities_hourly_G <- Intensities_hourly %>%
+  group_by(Day, time) %>%
+  drop_na() %>%
+  summarise(mean_TotalIntensity = mean(TotalIntensity))
+
+## Cleaning the format
+Intensities_hourly_G$Day <- factor(Intensities_hourly_G$Day, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday","Sunday"))
+
+```
+
+## Plotting a few explorations
+
+#### Relationship between days of the week and average intensity:
+
+```{r}
+## Get the start date and end date of intensity hourly data frame for later use
+mindate <- min(Intensities_hourly$date)
+maxdate <- max(Intensities_hourly$date)
+TotalID <- n_distinct(Intensities_hourly$Id)
+```
+
+```{r}
+ggplot(data=Intensities_Day_group) +
+  geom_col(mapping = aes(x = Day, y=mean_sum_TotalIntensity, fill=mean_sum_TotalIntensity)) +
+  theme(axis.text.x = element_text(angle = 45)) +
+  labs(title="Intensity of Each Day of the Week",
+       caption=paste0("Date from ", mindate," to ",maxdate, "; ", TotalID, " users"),
+       x="Day of the week",
+       y="Average intensity",
+       fill="Intensity") +
+  coord_cartesian(ylim=c(200,310))
+```
+
+* The graph shows that Saturday has the highest intensity, followed by Tuesday
+
+
+#### What time does the user usually exercise?
+```{r}
+ggplot(data=Intensities_hourly_G) +
+  geom_col(mapping = aes(x = time, y=mean_TotalIntensity)) +
+  theme(axis.text.x = element_text(size = 6, angle = 45)) +
+  labs(title="Hourly Intensity of a Day",
+       caption=paste0("Date from ", mindate," to ",maxdate, "; ", TotalID, " users"),
+       x="Time(hour)",
+       y="Average intensity")
+```
+
+* Users usually exercise more between 5pm~7pm, followed by exercise between 12pm~2 pm
+
+
+#### Deep dive into day of week level:
+```{r}
+ggplot(data=Intensities_hourly_G) +
+  geom_col(mapping = aes(x = time, y=mean_TotalIntensity, fill=mean_TotalIntensity)) +
+  facet_wrap(~Day) +
+  theme(axis.text.x = element_text(size = 6, angle = 45)) +
+  labs(title="Intensity of Each Hour of Each Day of the Week",
+       caption=paste0("Date from ", mindate," to ",maxdate, "; ", TotalID, " users"),
+       x="Time(hour)",
+       y="Average intensity",
+       fill="Intensity")
+```
+
+The graph shows some interesting result. 
+* We see that users **usually exercise between 5pm and 7pm on weekdays. On Saturdays, they are very active around 1pm and are pretty active until 7pm. On Sunday, the activity level dropped significantly.**
+
+## Sharing through different tools
+[Tableau](#)
+
+## Hypothesis and high-level insights
+
+Based on the data,  majority of the health tracker’s user have a long sedentary time and have a fixed schedule. Walk about 8,000 steps a day and exercise during lunchtime and off-work hours on weekdays. Very active on Saturday afternoon, more relaxed on Sunday.
+
+### Hypothesis:
+Majority of the customer base of health trackers are **full-time office worker** who need to attend many meetings, or sit in front of the computer and concentrate on the work they are doing
+
+### Marketing: What's our strategy?
+
+**1) Define unique selling point of Bellabeat for office worker**
+
+Through both qualitative and quantitative data, identify the top advantages of Bellabeat product for office worker
+
+**2) Identify the product positioning and competition**
+
+Set the target brand and model of each product. Is there a high or low price band we can explore?
+
+**3) Create a tailored marketing plan and increase brand awareness for the office worker**
+
+Some ideas: collaborating with companies to create special health events and providing promotions for attendees who submit surveys during the event
+
+### Analysis next steps: 
+
+This data set took place in 2016, however, after the global pandemic, human behavior has changed, and further analysis of post-pandemic behavior is needed to better understand current trends.
+
+* Analysis I removed from the final report: [scrap material](#)
+
+## End
+
+Thank you for reading my Bellabeat Case Study! This is my first project using R. If you have any comments or suggestions for improvement, please let me know,  I really appreciate it! 
+
+
+
+
+
+
