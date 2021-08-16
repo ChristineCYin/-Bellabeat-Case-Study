@@ -9,7 +9,7 @@ USršen used her background as an artist to develop beautifully designed technol
 There is <a href="https://bellabeat.com/">their website</a> for more information.
 
 <b>Business task</b><br>
-Analyze smart device usage data to gain insight into user habits and inform Bellabeat marketing strategy.
+Analyzed smart device usage data to gain insight into user habits and guided a Bellabeat marketing strategy.
 
 <b>Key stakeholders</b><br>
 &nbsp; &nbsp; Primary Stakeholders:<br>
